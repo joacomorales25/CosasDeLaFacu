@@ -74,3 +74,72 @@ insertarEnTodasLasPosiciones x (y:ys) = (x:y:ys) : map (y:) (insertarEnTodasLasP
 
 permutaciones:: [a] -> [[a]]
 permutaciones s = foldr (\x rec -> concatMap (insertarEnTodasLasPosiciones x) rec) [[]] s
+
+partes:: [a] -> [[a]]
+partes = foldr(\x rec -> rec ++ map (x:) rec) [[]]
+
+prefijos:: [a] -> [[a]]
+prefijos = foldr(\x rec -> [] : map (x:) rec) [[]]
+
+--5) indicar si cada funcion usa recursion estructural
+
+-- elementosEnPosicionesPares :: [a] -> [a]
+--elementosEnPosicionesPares [] = []
+--elementosEnPosicionesPares (x:xs) = if null xs
+--then [x]
+--else x : elementosEnPosicionesPares (tail xs)
+
+-- no usa recursion estructural, porque usa el valor de cola para ver si es vacia
+
+
+entrelazar :: [a] -> [a] -> [a]
+entrelazar [] = id
+entrelazar (x:xs) = \ys -> if null ys
+then x : entrelazar xs []
+else x : head ys : entrelazar xs (tail ys)
+
+-- en este caso si usa recursion estructural, porque la recursion esta hecha sobre la 
+-- primer lista, y solo consulta el valor de la segunda lista y usa el valor de la cabeza
+-- de la primer lista
+
+entrelazarVersionFoldr:: [a] -> [a] -> [a]
+entrelazarVersionFoldr = foldr (\x rec -> \li -> if null li then x: (rec []) else x: head li:rec (tail li)) (id)
+
+
+-- Ejercicio 6
+
+--  a) sacarUna
+
+recr :: (a -> [a] -> b -> b) -> b -> [a] -> b
+recr _ z [] = z
+recr f z (x : xs) = f x xs (recr f z xs)
+
+sacarUna:: Eq a => a -> [a] -> [a]
+sacarUna elem = recr (\x xs rec -> if x == elem then xs else x:rec) []
+
+-- b) foldr no sirve aca porque necesitamos ademas poder cortar antes la recursion usando 
+-- la cola de la lista
+
+--c) insertarOrdenado::Ord a => a -> [a] -> [a]
+
+
+insertarOrdenado::Ord a => a -> [a] -> [a]
+insertarOrdenado elem = recr(\x xs rec -> if x >= elem then elem:x:xs else x:rec) [elem]
+
+--Ejercicio 7: 
+--Definir la función genLista :: a -> (a -> a) -> Integer -> [a], que genera una lista de una cantidad dada de elementos, a partir de un elemento inicial y de una función de incremento entre los elementos
+--de la lista. Dicha función de incremento, dado un elemento de la lista, devuelve el elemento siguiente.
+
+genLista :: a -> (a -> a) -> Integer -> [a]
+genLista elem f n = foldr(\x rec -> f (head rec) : rec) [elem] [1..n-1]
+
+
+desdeHasta:: Integer -> Integer -> [Integer]
+desdeHasta x = genLista x (+1)
+
+--Ejercicio 8
+
+-- a) mapPares
+
+mapPares:: (a -> b -> c) -> [(a,b)] -> [c]
+mapPares f = map (uncurry f)
