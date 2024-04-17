@@ -27,12 +27,12 @@ siguiente_posición p Sur = (fst p, snd p - 1)
 siguiente_posición p Este = (fst p + 1, snd p)
 siguiente_posición p Oeste = (fst p - 1, snd p)
 
---posición :: Either Personaje Objeto -> Posición
---posición (Left p) = posición_personaje p
---posición (Right o) = posición_objeto o
+posición :: Either Personaje Objeto -> Posición
+posición (Left p) = posición_personaje p
+posición (Right o) = posición_objeto o
 
---posición_objeto :: Objeto -> Posición
---posición_objeto = foldObjeto const (const posición_personaje) id
+posición_objeto :: Objeto -> Posición
+posición_objeto = foldObjeto const (const posición_personaje) id
 
 nombre :: Either Personaje Objeto -> String
 nombre (Left p) = nombre_personaje p
@@ -81,17 +81,17 @@ cantidad_de_objetos = length . objetos_en
 cantidad_de_personajes :: Universo -> Int
 cantidad_de_personajes = length . personajes_en
 
---distancia :: (Either Personaje Objeto) -> (Either Personaje Objeto) -> Float
---distancia e1 e2 = norma2 (posición e1) (posición e2)
+distancia :: (Either Personaje Objeto) -> (Either Personaje Objeto) -> Float
+distancia e1 e2 = norma2 (posición e1) (posición e2)
 
---objetos_libres_en :: Universo -> [Objeto]
---objetos_libres_en u = filter objeto_libre (objetos_en u)
+objetos_libres_en :: Universo -> [Objeto]
+objetos_libres_en u = filter objeto_libre (objetos_en u)
 
 está_el_personaje :: String -> Universo -> Bool
 está_el_personaje n = foldr (\x r -> es_un_personaje x && nombre x == n && (está_vivo $ personaje_de x) || r) False
 
---está_el_objeto :: String -> Universo -> Bool
---está_el_objeto n = foldr (\x r -> es_un_objeto x && nombre x == n && not (fue_destruido $ objeto_de x) || r) False
+está_el_objeto :: String -> Universo -> Bool
+está_el_objeto n = foldr (\x r -> es_un_objeto x && nombre x == n && not (fue_destruido $ objeto_de x) || r) False
 
 -- Asume que el personaje está
 personaje_de_nombre :: String -> Universo -> Personaje
@@ -105,17 +105,17 @@ es_una_gema :: Objeto -> Bool
 es_una_gema o = isPrefixOf "Gema de" (nombre_objeto o)
 
 {-Ejercicio 1-}
-            --  los tipos son los de f , z, p y el de la salida, la funcion  es f que toma un personaje y el result
-            -- de la recursión y devuelve el resultado, z es el resultado de la recursión cuando el personaje muere
-foldPersonaje:: (Personaje -> a -> a) -> (a -> Dirección -> a) -> (a -> a) -> Personaje -> a
+--  los tipos son los de f , z, p y el de la salida, la funcion  es f que toma un personaje y el result
+-- de la recursión y devuelve el resultado, z es el resultado de la recursión cuando el personaje muere
+foldPersonaje:: (Posición -> String -> a) -> (a -> Dirección -> a) -> (a -> a) -> Personaje -> a
 foldPersonaje fPersonaje fMueve fMuere p = case p of
-  Personaje pos nom -> fPersonaje p (foldPersonaje fPersonaje fMueve fMuere p)
+  Personaje pos nom -> fPersonaje pos nom
   Mueve p' d -> fMueve (foldPersonaje fPersonaje fMueve fMuere p') d
   Muere p' -> fMuere (foldPersonaje fPersonaje fMueve fMuere p')
 
-foldObjeto :: (Objeto -> a -> a) -> (a -> Personaje -> a) -> (a -> a) -> Objeto -> a
+foldObjeto :: (Posición -> String -> a) -> (a -> Personaje -> a) -> (a -> a) -> Objeto -> a
 foldObjeto fObjeto fTomado fDestruido o = case o of
-  Objeto pos nom -> fObjeto o (foldObjeto fObjeto fTomado fDestruido o)
+  Objeto pos nom -> fObjeto pos nom
   Tomado o' p -> fTomado (foldObjeto fObjeto fTomado fDestruido o') p
   EsDestruido o' -> fDestruido (foldObjeto fObjeto fTomado fDestruido o')
 {-Ejercicio 2-}
@@ -152,16 +152,14 @@ dar_objetos_de_personaje name (Right o) r = if en_posesión_de name o then o : r
 dar_objetos_de_personaje name (Left p) r = r
 
 objetos_en_posesión_de :: String -> Universo -> [Objeto]
-objetos_en_posesión_de name = foldr (\x r -> case x of
-  (Left p) -> r
-  (Right o) -> if en_posesión_de name o then o : r else r
-  ) []
+objetos_en_posesión_de name = foldr (\x r -> dar_objetos_de_personaje name x r) []
 
 {-Ejercicio 5-}
 
 -- Asume que hay al menos un objeto
---objeto_libre_mas_cercano :: ?
---objeto_libre_mas_cercano = ?
+objeto_libre_mas_cercano :: Personaje -> Universo -> Objeto
+objeto_libre_mas_cercano p = foldr1 (\obj1 obj2 -> if objeto_libre obj1 && distancia (Right obj1) (Left p) < distancia (Right obj2) (Left p) then obj1 else obj2) . objetos_en
+
 
 {-Ejercicio 6-}
 
@@ -182,17 +180,19 @@ allTests = test [ -- Reemplazar los tests de prueba por tests propios
   "ejercicio1" ~: testsEj1,
   "ejercicio2" ~: testsEj2,
   "ejercicio3" ~: testsEj3,
-  --"ejercicio4" ~: testsEj4,
-  "foldObjeto" ~: testFoldObj,
-  --"ejercicio5" ~: testsEj5,
+  "ejercicio4" ~: testsEj4,
+  "ejercicio5" ~: testsEj5,
   --"ejercicio6" ~: testsEj6,
   --"ejercicio7" ~: testsEj7
   "fue_destruido" ~: testFueDestruido,
+  "nombre" ~: testNombres,
   "en_posesión_de" ~: testEnPosesion
   ]
 
 phil = Personaje (0,0) "Phil"
 mjölnir = Objeto (2,2) "Mjölnir"
+pepe = Objeto (1,1) "Pepe"
+pepe2 = Objeto (1,0) "Pepe2"
 universo_sin_thanos = universo_con [phil] [mjölnir]
 
 testsEj1 = test [ -- Casos de test para el ejercicio 1
@@ -204,6 +204,19 @@ testsEj1 = test [ -- Casos de test para el ejercicio 1
   , 
   foldPersonaje (\p s -> 0) (\r d -> r+1) (\r -> r+1) (Mueve phil Norte)
     ~=? 1                                                       -- Caso de test 2 - resultado esperado
+  ]
+
+testNombres = test [
+  
+  nombre_personaje phil
+  ~=? "Phil"
+  ,
+  nombre_personaje (Mueve phil Norte)
+  ~=? "Phil"
+  ,
+  nombre_objeto mjölnir
+  ~=? "Mjölnir"
+
   ]
 
 testsEj2 = test [ -- Casos de test para el ejercicio 2
@@ -231,27 +244,18 @@ testsEj3 = test [ -- Casos de test para el ejercicio 3
     ~=? []            -- Caso de test 1 - resultado esperado
   ,
   objetos_en [Right mjölnir]       -- Caso de test 2 - expresión a testear
-    ~=? [mjölnir]                   -- Caso de test 2 - resultado esperados
+    ~=? [mjölnir]
+  ,
+  objetos_en [Right mjölnir, Left phil, Right pepe2, Right pepe]       -- Caso de test 3 - expresión a testear
+    ~=? [mjölnir, pepe2, pepe]
   ]
 
---testsEj4 = test [ -- Casos de test para el ejercicio 4
-  --objetos_en_posesión_de "Phil" []       -- Caso de test 1 - expresión a testear
- -- ~=? []                             -- Caso de test 1 - resultado esperado
- -- ,
-  --objetos_en_posesión_de "Phil" [Right (Tomado mjölnir phil)]       -- Caso de test 2 - expresión a testear
- -- ~=? [mjölnir]                                         -- Caso de test 2 - resultado esperado
-  --]
-
-
-testFoldObj = test [
-  foldObjeto (\o s -> 0) (\r p -> 1) (\r -> 1) mjölnir
-  ~=? 0
-  ,
-  foldObjeto (\o s -> 0) (\r p -> 1) (\r -> 1) (Tomado mjölnir phil)
-  ~=? 1
-  ,
-  foldObjeto (\o s -> 0) (\r p -> 1) (\r -> 1) (EsDestruido mjölnir)
-  ~=? 1
+testsEj4 = test [ -- Casos de test para el ejercicio 4
+  objetos_en_posesión_de "Phil" []       -- Caso de test 1 - expresión a testear
+ ~=? []                             -- Caso de test 1 - resultado esperado
+ ,
+  objetos_en_posesión_de "Phil" [Right (Tomado mjölnir phil)]       -- Caso de test 2 - expresión a testear
+ ~=? [(Tomado mjölnir phil)]                                                      -- Caso de test 2 - resultado esperado
   ]
 
 testFueDestruido = test [
@@ -270,10 +274,16 @@ testEnPosesion = test [
   ~=? True
   ]
 
---testsEj5 = test [ -- Casos de test para el ejercicio 5
---  objeto_libre_mas_cercano phil [Right mjölnir]       -- Caso de test 1 - expresión a testear
- --   ~=? mjölnir                                       -- Caso de test 1 - resultado esperado
- -- ]
+testsEj5 = test [ -- Casos de test para el ejercicio 5
+ objeto_libre_mas_cercano phil [Right mjölnir]       -- Caso de test 1 - expresión a testear
+  ~=? mjölnir
+  ,
+  objeto_libre_mas_cercano phil [Right mjölnir, Right(pepe)]
+  ~=? pepe
+  ,
+  objeto_libre_mas_cercano phil [Right mjölnir, Right(pepe), Right(Tomado pepe2 phil)]
+  ~=? Tomado pepe2 phil
+ ]
 
 --testsEj6 = test [ -- Casos de test para el ejercicio 6
  -- tiene_thanos_todas_las_gemas universo_sin_thanos       -- Caso de test 1 - expresión a testear
